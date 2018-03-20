@@ -28,19 +28,14 @@ parser.add_argument('--input_size',     type=int,   default=32)
 parser.add_argument('--image_c',        type=int,   default=1)
 parser.add_argument('--z_dim',          type=int,   default=100)
 parser.add_argument('--nf',             type=int,   default=128) # number of filters
-#parser.add_argument('--n_label',        type=int,   default=7)
 parser.add_argument('--lambda_gp',      type=int,   default=10)
 parser.add_argument('--loss_type',      type=str,   default='WGAN') # GAN or WGAN
-#parser.add_argument('--lambda_cls',     type=int,   default=1)
-#parser.add_argument('--lambda_rec',     type=int,   default=10)
 parser.add_argument('--lr',             type=float, default=0.0001) # learning_rate
 parser.add_argument('--beta1',          type=float, default=0.9)
 #parser.add_argument('--continue_train', type=bool,  default=False)
-parser.add_argument('--sample_step',    type=int,   default=20) 
+parser.add_argument('--sample_step',    type=int,   default=300) 
 parser.add_argument('--log_step',       type=int,   default=1) 
 parser.add_argument('--ckpt_step',      type=int,   default=500) 
-#parser.add_argument('--binary_attrs',   type=str,   default='0000000')
-# self.attr_keys = ['Black_Hair','Blond_Hair','Brown_Hair', 'Male', 'Young','Mustache','Pale_Skin']
 
 args = parser.parse_args()
 

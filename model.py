@@ -9,7 +9,7 @@ from collections import namedtuple
 from tqdm import tqdm
 from glob import glob
 
-from module import generator, discriminator, gan_loss
+from module import generator, discriminator, gan_loss, wgan_gp_loss
 from util import make3d
 
 class dcgan(object):
@@ -37,8 +37,8 @@ class dcgan(object):
         self.ckpt_step = args.ckpt_step
 
         # hyper parameter for building the module
-        OPTIONS = namedtuple('options', ['batch_size', 'image_c', 'nf', 'z_dim', 'lambda_gp'])
-        self.options = OPTIONS(self.batch_size, self.image_c, self.nf, self.z_dim, self.lambda_gp)
+        OPTIONS = namedtuple('options', ['batch_size', 'image_c', 'nf', 'z_dim'])
+        self.options = OPTIONS(self.batch_size, self.image_c, self.nf, self.z_dim)
         
         # build model & make checkpoint saver
         self.build_model()
@@ -55,15 +55,23 @@ class dcgan(object):
         # discrimate image
         self.real_d = discriminator(self.real, self.options, False, name='disc')
         self.fake_d = discriminator(self.fake, self.options, True, name='disc')
-        
+
+            
         # loss : discriminator loss
-        self.d_real_loss = gan_loss(self.real_d, tf.ones_like(self.real_d))
-        self.d_fake_loss = gan_loss(self.fake_d, tf.zeros_like(self.fake_d))
-        self.d_loss = self.d_real_loss + self.d_fake_loss
+        if self.loss_type == 'GAN':
+            d_real_loss = gan_loss(self.real_d, tf.ones_like(self.real_d))
+            d_fake_loss = gan_loss(self.fake_d, tf.zeros_like(self.fake_d))
+            self.d_loss = d_real_loss + d_fake_loss
+        else: # 'WGAN'
+            gp_loss = wgan_gp_loss(self.real, self.fake, self.options)
+            self.d_loss = tf.reduce_mean(self.fake_d) - tf.reduce_mean(self.real) + self.lambda_gp * gp_loss
         
         # loss : generator loss
-        self.g_loss = gan_loss(self.fake_d, tf.ones_like(self.fake_d))
-        
+        if self.loss_type == 'GAN':
+            self.g_loss = gan_loss(self.fake_d, tf.ones_like(self.fake_d))
+        else: # 'WGAN'
+            self.g_loss = -tf.reduce_mean(self.fake_d)
+            
         # trainable variables
         t_vars = tf.trainable_variables()
         self.d_vars = [var for var in t_vars if 'disc' in var.name]
@@ -134,8 +142,6 @@ class dcgan(object):
         self.writer = tf.summary.FileWriter(self.log_dir, self.sess.graph)
         
         # session: discriminator
-        tf.summary.scalar('d_real_loss', self.d_real_loss, collections=['disc'])
-        tf.summary.scalar('d_fake_loss', self.d_fake_loss, collections=['disc'])
         tf.summary.scalar('d_loss', self.d_loss, collections=['disc'])
         tf.summary.scalar('d_real_val', tf.reduce_mean(self.real_d), collections=['disc'])
         tf.summary.scalar('d_fake_val', tf.reduce_mean(self.fake_d), collections=['disc'])
