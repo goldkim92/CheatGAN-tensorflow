@@ -9,7 +9,7 @@ from collections import namedtuple
 from tqdm import tqdm
 from glob import glob
 
-from module import generator, discriminator, gan_loss, wgan_gp_loss
+from module import generator, encoder, discriminator, gan_loss, wgan_gp_loss, recon_loss
 from util import make3d
 
 class dcgan(object):
@@ -31,6 +31,7 @@ class dcgan(object):
         self.lr = args.lr
         self.beta1 = args.beta1
         self.lambda_gp = args.lambda_gp
+        self.lambda_ae= args.lambda_ae
         self.loss_type = args.loss_type
         self.sample_step = args.sample_step
         self.log_step = args.log_step
@@ -50,13 +51,16 @@ class dcgan(object):
         self.real = tf.placeholder(tf.float32, [None, self.input_size, self.input_size, self.image_c], name='real')
         
         # generate image
-        self.fake = generator(self.z, self.options, False, name='gen')
-        
-        # discrimate image
-        self.real_d = discriminator(self.real, self.options, False, name='disc')
-        self.fake_d = discriminator(self.fake, self.options, True, name='disc')
+        self.fake, fake_features = generator(self.z, self.options, False, name='gen')
 
-            
+        # encoder-generator (AE)
+        latent = encoder(self.real, self.options, False, name='enc')
+        self.real_ae, real_features = generator(latent, self.options, True, name='gen')        
+                    
+        # discrimate image
+        self.real_d = discriminator(self.real, real_features, self.options, False, name='disc')
+        self.fake_d = discriminator(self.fake, fake_features, self.options, True, name='disc')
+
         # loss : discriminator loss
         if self.loss_type == 'GAN':
             d_real_loss = gan_loss(self.real_d, tf.ones_like(self.real_d))
@@ -72,14 +76,19 @@ class dcgan(object):
         else: # 'WGAN'
             self.g_loss = -tf.reduce_mean(self.fake_d)
             
+        # loss : reconstruction loss in auto-encoder
+        self.recon_loss = self.lambda_ae * recon_loss(self.real, self.real_ae, norm='l2')
+        
         # trainable variables
         t_vars = tf.trainable_variables()
         self.d_vars = [var for var in t_vars if 'disc' in var.name]
         self.g_vars = [var for var in t_vars if 'gen' in var.name]
+        self.e_vars = [var for var in t_vars if 'enc' in var.name]
         
         # optimizer
         self.d_optim = tf.train.AdamOptimizer(self.lr, beta1=self.beta1).minimize(self.d_loss, var_list=self.d_vars)
         self.g_optim = tf.train.AdamOptimizer(self.lr, beta1=self.beta1).minimize(self.g_loss, var_list=self.g_vars)
+        self.e_optim = tf.train.AdamOptimizer(self.lr, beta1=self.beta1).minimize(self.recon_loss, var_list=self.e_vars)
         
     def train(self):
         # summary setting
@@ -118,12 +127,17 @@ class dcgan(object):
                 feed = {self.z: z_value}
                 _, g_summary = self.sess.run([self.g_optim, self.g_sum], feed_dict=feed)
                 
+                # update E network
+                feed = {self.real: images}
+                _, e_summary = self.sess.run([self.e_optim, self.e_sum], feed_dict=feed)
+                
                 count_idx += 1
 
                 # log step (summary)
                 if count_idx % self.log_step == 0:
                     self.writer.add_summary(d_summary, count_idx)
                     self.writer.add_summary(g_summary, count_idx)
+                    self.writer.add_summary(e_summary, count_idx)
                     
                 # checkpoint step
                 if count_idx % self.ckpt_step == 0:
@@ -131,7 +145,7 @@ class dcgan(object):
                 
                 # sample step
                 if count_idx % self.sample_step == 0:
-                    feed = {self.z: z_rand_sample}
+                    feed = {self.real: images, self.z: z_rand_sample}
                     fake_sample, img_summary = self.sess.run([self.fake, self.img_sum], feed_dict=feed)
                     fake_sample = make3d(fake_sample, int(np.sqrt(self.batch_size)), int(np.sqrt(self.batch_size)) )
                     
@@ -154,8 +168,16 @@ class dcgan(object):
         self.g_sum = tf.summary.scalar('loss/g', self.g_loss)
 #        self.g_sum = tf.summary.merge([sum_g])
     
+        # session: encoder
+        self.e_sum = tf.summary.scalar('loss/recon', self.recon_loss)
+        
         # session: image
-        self.img_sum = tf.summary.image('sample image', self.fake, max_outputs=8)
+        tf.summary.image('sample image', self.fake, max_outputs=5, collections=['img'])
+        # session: auto-encoder
+        tf.summary.image('real image', self.real, max_outputs=5, collections=['enc', 'img'])
+        tf.summary.image('real AE image', self.real_ae, max_outputs=5, collections=['enc', 'img'])
+        self.img_sum = tf.summary.merge_all('img')
+        
     
     def checkpoint_save(self, count):
         model_name = 'dcgan.model'
