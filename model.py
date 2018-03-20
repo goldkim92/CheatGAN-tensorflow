@@ -98,6 +98,7 @@ class dcgan(object):
         count_idx = 0
         #train
         for epoch in range(self.epoch):
+            print('Epoch[{}/{}]'.format(epoch+1, self.epoch))
             for idx in tqdm(range(batch_idxs)):
                 # get batch images and labels
                 images, labels = mnist.train.next_batch(self.batch_size)
@@ -131,10 +132,11 @@ class dcgan(object):
                 # sample step
                 if count_idx % self.sample_step == 0:
                     feed = {self.z: z_rand_sample}
-                    fake_sample = self.sess.run(self.fake, feed_dict=feed)
+                    fake_sample, img_summary = self.sess.run([self.fake, self.img_sum], feed_dict=feed)
                     fake_sample = make3d(fake_sample, int(np.sqrt(self.batch_size)), int(np.sqrt(self.batch_size)) )
                     
                     scm.imsave(os.path.join(self.sample_dir, str(count_idx)+'.png'), np.squeeze(fake_sample))
+                    self.writer.add_summary(img_summary, count_idx)
                     
         
     def summary(self):
@@ -142,16 +144,18 @@ class dcgan(object):
         self.writer = tf.summary.FileWriter(self.log_dir, self.sess.graph)
         
         # session: discriminator
-        tf.summary.scalar('d_loss', self.d_loss, collections=['disc'])
-        tf.summary.scalar('d_real_val', tf.reduce_mean(self.real_d), collections=['disc'])
-        tf.summary.scalar('d_fake_val', tf.reduce_mean(self.fake_d), collections=['disc'])
+        tf.summary.scalar('loss/d', self.d_loss, collections=['disc'])
+        tf.summary.scalar('val/d_real', tf.reduce_mean(self.real_d), collections=['disc'])
+        tf.summary.scalar('val/d_fake', tf.reduce_mean(self.fake_d), collections=['disc'])
 #        self.d_sum = tf.summary.merge([sum_d_loss, sum_d_real_val, sum_d_fake_val])
         self.d_sum = tf.summary.merge_all('disc')
         
         # session: generator
-        sum_g = tf.summary.scalar('gen/g_loss', self.g_loss)
-        self.g_sum = tf.summary.merge([sum_g])
+        self.g_sum = tf.summary.scalar('loss/g', self.g_loss)
+#        self.g_sum = tf.summary.merge([sum_g])
     
+        # session: image
+        self.img_sum = tf.summary.image('sample image', self.fake, max_outputs=8)
     
     def checkpoint_save(self, count):
         model_name = 'dcgan.model'
