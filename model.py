@@ -54,8 +54,8 @@ class dcgan(object):
         self.fake, fake_features = generator(self.z, self.options, False, name='gen')
 
         # encoder-generator (AE)
-        latent = encoder(self.real, self.options, False, name='enc')
-        self.real_ae, real_features = generator(latent, self.options, True, name='gen')        
+        self.latent = encoder(self.real, self.options, False, name='enc')
+        self.real_ae, real_features = generator(self.latent, self.options, True, name='gen')        
                     
         # discrimate image
         self.real_d = discriminator(self.real, real_features, self.options, False, name='disc')
@@ -79,6 +79,8 @@ class dcgan(object):
         # loss : reconstruction loss in auto-encoder
         self.recon_loss = self.lambda_ae * recon_loss(self.real, self.real_ae, norm='l2')
         
+        self.ge_loss = self.recon_loss + self.g_loss
+        
         # trainable variables
         t_vars = tf.trainable_variables()
         self.d_vars = [var for var in t_vars if 'disc' in var.name]
@@ -87,8 +89,10 @@ class dcgan(object):
         
         # optimizer
         self.d_optim = tf.train.AdamOptimizer(self.lr, beta1=self.beta1).minimize(self.d_loss, var_list=self.d_vars)
-        self.g_optim = tf.train.AdamOptimizer(self.lr, beta1=self.beta1).minimize(self.g_loss, var_list=self.g_vars)
-        self.e_optim = tf.train.AdamOptimizer(self.lr, beta1=self.beta1).minimize(self.recon_loss, var_list=self.e_vars)
+#        self.g_optim = tf.train.AdamOptimizer(self.lr, beta1=self.beta1).minimize(self.g_loss, var_list=self.g_vars)
+#        self.e_optim = tf.train.AdamOptimizer(self.lr, beta1=self.beta1).minimize(self.recon_loss, var_list=self.e_vars)
+        
+        self.ge_optim = tf.train.AdamOptimizer(self.lr, beta1=self.beta1).minimize(self.ge_loss, var_list=(self.g_vars+self.e_vars))
         
     def train(self):
         # summary setting
@@ -123,13 +127,19 @@ class dcgan(object):
                 feed = {self.real: images, self.z: z_value}
                 _, d_summary = self.sess.run([self.d_optim, self.d_sum], feed_dict=feed)
                 
+                # ge
+                feed = {self.real: images}
+                latent = self.sess.run(self.latent, feed_dict=feed)
+                feed = {self.real: images, self.z: latent}
+                _, g_summary, e_summary = self.sess.run([self.ge_optim, self.g_sum, self.e_sum], feed_dict=feed)
+                
                 # update G network
                 feed = {self.z: z_value}
-                _, g_summary = self.sess.run([self.g_optim, self.g_sum], feed_dict=feed)
+#                _, g_summary = self.sess.run([self.1g_optim, self.g_sum], feed_dict=feed)
                 
                 # update E network
                 feed = {self.real: images}
-                _, e_summary = self.sess.run([self.e_optim, self.e_sum], feed_dict=feed)
+#                _, e_summary = self.sess.run([self.e_optim, self.e_sum], feed_dict=feed)
                 
                 count_idx += 1
 
@@ -172,10 +182,10 @@ class dcgan(object):
         self.e_sum = tf.summary.scalar('loss/recon', self.recon_loss)
         
         # session: image
-        tf.summary.image('sample image', self.fake, max_outputs=5, collections=['img'])
+        tf.summary.image('sample image', self.fake, max_outputs=4, collections=['img'])
         # session: auto-encoder
-        tf.summary.image('real image', self.real, max_outputs=5, collections=['enc', 'img'])
-        tf.summary.image('real AE image', self.real_ae, max_outputs=5, collections=['enc', 'img'])
+        tf.summary.image('real image', self.real, max_outputs=4, collections=['enc', 'img'])
+        tf.summary.image('real AE image', self.real_ae, max_outputs=4, collections=['enc', 'img'])
         self.img_sum = tf.summary.merge_all('img')
         
     

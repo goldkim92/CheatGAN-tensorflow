@@ -29,7 +29,7 @@ parser.add_argument('--image_c',        type=int,   default=1)
 parser.add_argument('--z_dim',          type=int,   default=100)
 parser.add_argument('--nf',             type=int,   default=128) # number of filters
 parser.add_argument('--lambda_gp',      type=int,   default=10)
-parser.add_argument('--lambda_ae',      type=int,   default=10) # reconstruction loss weight
+parser.add_argument('--lambda_ae',      type=int,   default=0.001) # reconstruction loss weight
 parser.add_argument('--loss_type',      type=str,   default='WGAN') # GAN or WGAN
 parser.add_argument('--lr',             type=float, default=0.0001) # learning_rate
 parser.add_argument('--beta1',          type=float, default=0.9)
