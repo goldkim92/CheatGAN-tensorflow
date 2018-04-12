@@ -184,7 +184,7 @@ class dcgan(object):
         # session: image
         self.tf_imgs = tf.concat([self.real[:4,:,:,:], self.real_ae[:4,:,:,:], self.fake[:4,:,:,:]], axis=0)
         self.tf_imgs = make3d(self.tf_imgs,4,3)
-        self.img_sum = tf.summary.image('images', self.tf_imgs)
+        self.img_sum = tf.summary.image('real-AE-fake', self.tf_imgs)
         
 #        tf.summary.image('sample image', self.fake, max_outputs=4, collections=['img'])
 #        # session: auto-encoder
