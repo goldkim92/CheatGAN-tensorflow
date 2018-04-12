@@ -182,11 +182,15 @@ class dcgan(object):
         self.e_sum = tf.summary.scalar('loss/recon', self.recon_loss)
         
         # session: image
-        tf.summary.image('sample image', self.fake, max_outputs=4, collections=['img'])
-        # session: auto-encoder
-        tf.summary.image('real image', self.real, max_outputs=4, collections=['enc', 'img'])
-        tf.summary.image('real AE image', self.real_ae, max_outputs=4, collections=['enc', 'img'])
-        self.img_sum = tf.summary.merge_all('img')
+        self.tf_imgs = tf.concat([self.real[:4,:,:,:], self.real_ae[:4,:,:,:], self.fake[:4,:,:,:]], axis=0)
+        self.tf_imgs = make3d(self.tf_imgs,4,3)
+        self.img_sum = tf.summary.image('images', self.tf_imgs)
+        
+#        tf.summary.image('sample image', self.fake, max_outputs=4, collections=['img'])
+#        # session: auto-encoder
+#        tf.summary.image('real image', self.real, max_outputs=4, collections=['enc', 'img'])
+#        tf.summary.image('real AE image', self.real_ae, max_outputs=4, collections=['enc', 'img'])
+#        self.img_sum = tf.summary.merge_all('img')
         
     
     def checkpoint_save(self, count):
