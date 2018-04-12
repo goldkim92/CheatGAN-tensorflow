@@ -155,7 +155,7 @@ class dcgan(object):
 #        self.g_sum = tf.summary.merge([sum_g])
     
         # session: image
-        self.img_sum = tf.summary.image('sample image', self.fake, max_outputs=8)
+        self.img_sum = tf.summary.image('sample image', make3d(self.fake[:12,:,:,:],4,3))
     
     def checkpoint_save(self, count):
         model_name = 'dcgan.model'
