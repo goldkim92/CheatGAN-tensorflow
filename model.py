@@ -10,7 +10,7 @@ from tqdm import tqdm
 from glob import glob
 
 from module import generator, encoder, discriminator, gan_loss, wgan_gp_loss, recon_loss
-from util import make3d
+from util import make3d, save_scattered_image
 
 class dcgan(object):
     def __init__(self, sess, args):
@@ -49,6 +49,7 @@ class dcgan(object):
         # placeholder
         self.z = tf.placeholder(tf.float32, [None, self.z_dim], name='noise')
         self.real = tf.placeholder(tf.float32, [None, self.input_size, self.input_size, self.image_c], name='real')
+        self.plot = tf.placeholder(tf.float32, [1, None, None, None], name='plot')
         
         # generate image
         self.fake, fake_features = generator(self.z, self.options, False, name='gen')
@@ -100,6 +101,10 @@ class dcgan(object):
         
         # load train data list
         mnist = input_data.read_data_sets(self.data_dir, one_hot=True)
+        self.test_images = mnist.test.images[:1000,:]
+        self.test_images = self.test_images.reshape([1000, self.image_size, self.image_size])
+        self.test_images = self.zero_padding(self.test_images) # 28*28 --> 32*32*1
+        self.test_labels = mnist.test.labels
         
         # random seed for sampling test during training
         z_rand_sample = np.random.normal(0,1,size=(self.batch_size, self.z_dim)).astype(np.float32)
@@ -107,10 +112,14 @@ class dcgan(object):
         # variable initialize
         self.sess.run(tf.global_variables_initializer())
         
+        # first scatter plot
+        self.latent_scatter_plot(0)
+        
+        #train
         batch_idxs = mnist.train.num_examples // self.batch_size
         count_idx = 0
-        #train
         for epoch in range(self.epoch):
+            
             print('Epoch[{}/{}]'.format(epoch+1, self.epoch))
             for idx in tqdm(range(batch_idxs)):
                 # get batch images and labels
@@ -161,7 +170,23 @@ class dcgan(object):
                     
                     scm.imsave(os.path.join(self.sample_dir, str(count_idx)+'.png'), np.squeeze(fake_sample))
                     self.writer.add_summary(img_summary, count_idx)
-                    
+            
+            # for every epoch, plot the latent distribution
+            self.latent_scatter_plot(epoch+1)
+
+    
+    def latent_scatter_plot(self, epoch):
+        ''' 1000 latent vectors for image-encoded-latent and prior respectively '''
+        feed = {self.real: self.test_images[:1000,:]}
+        latent_real = self.sess.run(self.latent, feed_dict=feed)
+        latent_prior = np.random.normal(0,1,size=(1000, self.z_dim)).astype(np.float32)
+        
+        plot_img = save_scattered_image(latent_prior, latent_real, 1000, epoch, self.test_dir)
+        
+        feed = {self.plot: plot_img}
+        self.plot_summary = self.sess.run(self.plot_sum, feed_dict=feed)
+        
+        self.writer.add_summary(self.plot_summary, epoch)
         
     def summary(self):
         # summary writer
@@ -186,6 +211,9 @@ class dcgan(object):
         self.tf_imgs = make3d(self.tf_imgs,4,3)
         self.img_sum = tf.summary.image('real-AE-fake', self.tf_imgs)
         
+        # session: plot
+        self.plot_sum = tf.summary.image("plot", self.plot)
+        
 #        tf.summary.image('sample image', self.fake, max_outputs=4, collections=['img'])
 #        # session: auto-encoder
 #        tf.summary.image('real image', self.real, max_outputs=4, collections=['enc', 'img'])
@@ -199,7 +227,7 @@ class dcgan(object):
         
     
     def zero_padding(self, images):
-        pad_imgs = np.zeros([self.batch_size, self.input_size, self.input_size]) # 32*32
+        pad_imgs = np.zeros([images.shape[0], self.input_size, self.input_size]) # 32*32
         pad_imgs[:,2:-2,2:-2] = images
         return np.expand_dims(pad_imgs,axis=3) # 32*32*1
         
