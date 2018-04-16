@@ -113,7 +113,8 @@ class dcgan(object):
         self.sess.run(tf.global_variables_initializer())
         
         # first scatter plot
-        self.latent_scatter_plot(0)
+        if self.z_dim == 2:
+            self.latent_scatter_plot(0)
         
         #train
         batch_idxs = mnist.train.num_examples // self.batch_size
@@ -172,7 +173,8 @@ class dcgan(object):
                     self.writer.add_summary(img_summary, count_idx)
             
             # for every epoch, plot the latent distribution
-            self.latent_scatter_plot(epoch+1)
+            if self.z_dim == 2:
+                self.latent_scatter_plot(epoch+1)
 
     
     def latent_scatter_plot(self, epoch):
