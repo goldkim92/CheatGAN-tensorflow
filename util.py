@@ -70,5 +70,6 @@ def save_scattered_image(latent_prior, latent_real, each_len, epoch, test_dir):
     
     plot_img = scm.imread(os.path.join(test_dir,'tmp_{}.png'.format(str(epoch))))
     plot_img = np.expand_dims(plot_img, axis=0)
+    plt.close()
     return plot_img
     
