@@ -73,6 +73,6 @@ def cls_loss(logits, labels):
 
 def recon_loss(image1, image2, norm='l2'):
     if norm == 'l2':
-        return tf.reduce_mean(tf.nn.l2_loss(image1 - image2))
+        return tf.reduce_mean(tf.pow(image1 - image2,2))
     else: # l1
         return tf.reduce_mean(tf.abs(image1 - image2))

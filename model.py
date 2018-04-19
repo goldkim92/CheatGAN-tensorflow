@@ -78,7 +78,8 @@ class dcgan(object):
             self.g_loss = -tf.reduce_mean(self.fake_d)
             
         # loss : reconstruction loss in auto-encoder
-        self.recon_loss = self.lambda_ae * recon_loss(self.real, self.real_ae, norm='l2')
+        self.recon_loss = recon_loss(self.real, self.real_ae, norm='l2')
+#        self.recon_loss = self.lambda_ae * recon_loss(self.real, self.real_ae, norm='l2')
         
         self.ge_loss = self.recon_loss + self.g_loss
         
@@ -89,11 +90,12 @@ class dcgan(object):
         self.e_vars = [var for var in t_vars if 'enc' in var.name]
         
         # optimizer
-        self.d_optim = tf.train.AdamOptimizer(self.lr, beta1=self.beta1).minimize(self.d_loss, var_list=self.d_vars)
-#        self.g_optim = tf.train.AdamOptimizer(self.lr, beta1=self.beta1).minimize(self.g_loss, var_list=self.g_vars)
-#        self.e_optim = tf.train.AdamOptimizer(self.lr, beta1=self.beta1).minimize(self.recon_loss, var_list=self.e_vars)
+        self.d_optim = tf.train.AdamOptimizer(self.lr/5, beta1=self.beta1).minimize(self.d_loss, var_list=self.d_vars)
+        self.g_optim = tf.train.AdamOptimizer(self.lr, beta1=self.beta1).minimize(self.g_loss, var_list=self.g_vars)
+        self.e_optim = tf.train.AdamOptimizer(self.lr, beta1=self.beta1).minimize(
+            self.recon_loss, var_list=self.e_vars) # + self.g_vars
         
-        self.ge_optim = tf.train.AdamOptimizer(self.lr, beta1=self.beta1).minimize(self.ge_loss, var_list=(self.g_vars+self.e_vars))
+#        self.ge_optim = tf.train.AdamOptimizer(self.lr, beta1=self.beta1).minimize(self.ge_loss, var_list=(self.g_vars+self.e_vars))
         
     def train(self):
         # summary setting
@@ -133,23 +135,23 @@ class dcgan(object):
 #                feed = {self.z: z_value}
 #                fake = self.sess.run(self.fake, feed_dict=feed)
                 
+                ''' Update Network '''
+                # update E network
+                feed = {self.real: images}
+                _, e_summary = self.sess.run([self.e_optim, self.e_sum], feed_dict=feed)
                 # update D network
                 feed = {self.real: images, self.z: z_value}
                 _, d_summary = self.sess.run([self.d_optim, self.d_sum], feed_dict=feed)
                 
                 # ge
-                feed = {self.real: images}
-                latent = self.sess.run(self.latent, feed_dict=feed)
-                feed = {self.real: images, self.z: latent}
-                _, g_summary, e_summary = self.sess.run([self.ge_optim, self.g_sum, self.e_sum], feed_dict=feed)
+#                feed = {self.real: images}
+#                latent = self.sess.run(self.latent, feed_dict=feed)
+#                feed = {self.real: images, self.z: latent}
+#                _, g_summary, e_summary = self.sess.run([self.ge_optim, self.g_sum, self.e_sum], feed_dict=feed)
                 
                 # update G network
                 feed = {self.z: z_value}
-#                _, g_summary = self.sess.run([self.1g_optim, self.g_sum], feed_dict=feed)
-                
-                # update E network
-                feed = {self.real: images}
-#                _, e_summary = self.sess.run([self.e_optim, self.e_sum], feed_dict=feed)
+                _, g_summary = self.sess.run([self.g_optim, self.g_sum], feed_dict=feed)
                 
                 count_idx += 1
 
