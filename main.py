@@ -18,7 +18,8 @@ parser.add_argument('--gpu_number',     type=str,   default='0')
 parser.add_argument('--data_dir',       type=str,   default=os.path.join('.','MNIST_data'))
 parser.add_argument('--log_dir',        type=str,   default='log') # in assets/ directory
 parser.add_argument('--ckpt_dir',       type=str,   default='checkpoint') # in assets/ directory
-parser.add_argument('--sample_dir',     type=str,   default='sample') # in assets/ directory
+parser.add_argument('--sample_dir',     type=str,   default=os.path.join('sample','image')) # in assets/ directory
+parser.add_argument('--plot_dir',       type=str,   default=os.path.join('sample','plot')) # in assets/ directory
 parser.add_argument('--test_dir',       type=str,   default='test') # in assets/ directory
 parser.add_argument('--assets_dir',     type=str,   default=None,   required=True) # if assets_dir='aa' -> assets_dir='./assets/aa'
 parser.add_argument('--epoch',          type=int,   default=20)

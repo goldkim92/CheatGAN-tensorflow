@@ -20,6 +20,7 @@ class dcgan(object):
         self.log_dir = args.log_dir
         self.ckpt_dir = args.ckpt_dir
         self.sample_dir = args.sample_dir
+        self.plot_dir = args.plot_dir
         self.test_dir = args.test_dir
         self.epoch = args.epoch
         self.batch_size = args.batch_size
@@ -193,7 +194,7 @@ class dcgan(object):
         latent_real = self.sess.run(self.latent, feed_dict=feed)
         latent_prior = np.random.normal(0,1,size=(1000, self.z_dim)).astype(np.float32)
         
-        plot_img = save_scattered_image(latent_prior, latent_real, 1000, epoch, self.test_dir)
+        plot_img = save_scattered_image(latent_prior, latent_real, 1000, epoch, self.plot_dir)
         
         feed = {self.plot: plot_img}
         self.plot_summary = self.sess.run(self.plot_sum, feed_dict=feed)
