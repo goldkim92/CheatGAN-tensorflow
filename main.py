@@ -52,6 +52,7 @@ def main(_):
     args.log_dir = os.path.join(assets_dir, args.log_dir)
     args.ckpt_dir = os.path.join(assets_dir, args.ckpt_dir)
     args.sample_dir = os.path.join(assets_dir, args.sample_dir)
+    args.plot_dir = os.path.join(assets_dir, args.plot_dir)
     args.test_dir = os.path.join(assets_dir, args.test_dir)
     
     # make directory if not exist
@@ -60,6 +61,8 @@ def main(_):
     try: os.makedirs(args.ckpt_dir)
     except: pass
     try: os.makedirs(args.sample_dir)
+    except: pass
+    try: os.makedirs(args.plot_dir)
     except: pass
     try: os.makedirs(args.test_dir)
     except: pass
