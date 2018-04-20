@@ -105,9 +105,10 @@ class dcgan(object):
         
 #        self.ge_optim = tf.train.AdamOptimizer(self.lr, beta1=self.beta1).minimize(self.ge_loss, var_list=(self.g_vars+self.e_vars))
         
-    def train(self):
         # summary setting
         self.summary()
+        
+    def train(self):
         
         # load train data list
         mnist = input_data.read_data_sets(self.data_dir, one_hot=True)
@@ -200,7 +201,25 @@ class dcgan(object):
         self.plot_summary = self.sess.run(self.plot_sum, feed_dict=feed)
         
         self.writer.add_summary(self.plot_summary, epoch)
+                    
+    
+    def test(self):
+        # get z value (random noise) 
+        z_value = np.random.normal(0,1,size=(self.batch_size, self.z_dim)).astype(np.float32)
+
+        # load or not checkpoint
+        if self.phase=='test' and self.checkpoint_load():
+            print(" [*] before testing, Load SUCCESS ")
+        else:
+            print(" [!] before testing, Load FAILED")  
+            
+        feed = {self.z: z_value}
+        fake_sample, img_test_summary = self.sess.run([self.fake, self.img_test_sum], feed_dict=feed)
+        fake_sample = make3d(fake_sample, int(np.sqrt(self.batch_size)), int(np.sqrt(self.batch_size)) )
         
+        scm.imsave(os.path.join(self.test_dir, 'fake_image.png'), np.squeeze(fake_sample))
+        self.writer.add_summary(img_test_summary)
+    
     def summary(self):
         # summary writer
         self.writer = tf.summary.FileWriter(self.log_dir, self.sess.graph)
@@ -235,7 +254,20 @@ class dcgan(object):
 #        tf.summary.image('real AE image', self.real_ae, max_outputs=4, collections=['enc', 'img'])
 #        self.img_sum = tf.summary.merge_all('img')
         
+		# session: image (test)
+        self.img_test_sum = tf.summary.image('test(fake) image', make3d(self.fake,int(np.sqrt(self.batch_size)),int(np.sqrt(self.batch_size))))
     
+    def checkpoint_load(self):
+        print(" [*] Reading checkpoint...")
+        
+        ckpt = tf.train.get_checkpoint_state(self.ckpt_dir)        
+        if ckpt and ckpt.model_checkpoint_path:
+            ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
+            self.saver.restore(self.sess, os.path.join(self.ckpt_dir, ckpt_name))
+            return True
+        else:
+            return False    
+
     def checkpoint_save(self, count):
         model_name = 'dcgan.model'
         self.saver.save(self.sess, os.path.join(self.ckpt_dir, model_name), global_step=count)
