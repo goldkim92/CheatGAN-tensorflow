@@ -18,7 +18,8 @@ parser.add_argument('--gpu_number',     type=str,   default='0')
 parser.add_argument('--data_dir',       type=str,   default=os.path.join('.','MNIST_data'))
 parser.add_argument('--log_dir',        type=str,   default='log') # in assets/ directory
 parser.add_argument('--ckpt_dir',       type=str,   default='checkpoint') # in assets/ directory
-parser.add_argument('--sample_dir',     type=str,   default='sample') # in assets/ directory
+parser.add_argument('--sample_dir',     type=str,   default=os.path.join('sample','image')) # in assets/ directory
+parser.add_argument('--plot_dir',       type=str,   default=os.path.join('sample','plot')) # in assets/ directory
 parser.add_argument('--test_dir',       type=str,   default='test') # in assets/ directory
 parser.add_argument('--assets_dir',     type=str,   default=None,   required=True) # if assets_dir='aa' -> assets_dir='./assets/aa'
 parser.add_argument('--epoch',          type=int,   default=20)
@@ -51,6 +52,7 @@ def main(_):
     args.log_dir = os.path.join(assets_dir, args.log_dir)
     args.ckpt_dir = os.path.join(assets_dir, args.ckpt_dir)
     args.sample_dir = os.path.join(assets_dir, args.sample_dir)
+    args.plot_dir = os.path.join(assets_dir, args.plot_dir)
     args.test_dir = os.path.join(assets_dir, args.test_dir)
     
     # make directory if not exist
@@ -59,6 +61,8 @@ def main(_):
     try: os.makedirs(args.ckpt_dir)
     except: pass
     try: os.makedirs(args.sample_dir)
+    except: pass
+    try: os.makedirs(args.plot_dir)
     except: pass
     try: os.makedirs(args.test_dir)
     except: pass

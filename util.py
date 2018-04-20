@@ -27,7 +27,6 @@ def make3d(img, nx,ny):
         return img
     else: # tf.Tensor
         b,h,w,c = img.get_shape().as_list()
-#        print(img.get_shape().as_list())
 #        black = tf.zeros([nx*ny-b,h,w,c],dtype=img.dtype)
 #        img = tf.concat([img,black],axis=0)
         img = tf.reshape(img, [ny,nx,h,w,c])
