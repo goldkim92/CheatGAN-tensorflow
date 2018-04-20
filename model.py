@@ -9,7 +9,7 @@ from collections import namedtuple
 from tqdm import tqdm
 from glob import glob
 
-from module import generator, encoder, discriminator, gan_loss, wgan_gp_loss, recon_loss
+from module import generator, encoder, discriminator, gan_loss, wgan_gp_loss, recon_loss, kl_loss
 from util import make3d, save_scattered_image
 
 class dcgan(object):
@@ -32,6 +32,7 @@ class dcgan(object):
         self.beta1 = args.beta1
         self.lambda_gp = args.lambda_gp
         self.lambda_ae= args.lambda_ae
+        self.lambda_kl = args.lambda_kl
         self.loss_type = args.loss_type
         self.sample_step = args.sample_step
         self.log_step = args.log_step
@@ -62,6 +63,7 @@ class dcgan(object):
         self.real_d = discriminator(self.real, real_features, self.options, False, name='disc')
         self.fake_d = discriminator(self.fake, fake_features, self.options, True, name='disc')
 
+        ''' loss function '''
         # loss : discriminator loss
         if self.loss_type == 'GAN':
             d_real_loss = gan_loss(self.real_d, tf.ones_like(self.real_d))
@@ -81,6 +83,10 @@ class dcgan(object):
         self.recon_loss = recon_loss(self.real, self.real_ae, norm='l2')
 #        self.recon_loss = self.lambda_ae * recon_loss(self.real, self.real_ae, norm='l2')
         
+        # loss : kl loss btw latent distribution
+        self.kl_loss = kl_loss(self.latent, mode='qp')
+    
+        self.e_loss = self.recon_loss + self.lambda_kl * self.kl_loss
         self.ge_loss = self.recon_loss + self.g_loss
         
         # trainable variables
@@ -92,8 +98,9 @@ class dcgan(object):
         # optimizer
         self.d_optim = tf.train.AdamOptimizer(self.lr/5, beta1=self.beta1).minimize(self.d_loss, var_list=self.d_vars)
         self.g_optim = tf.train.AdamOptimizer(self.lr, beta1=self.beta1).minimize(self.g_loss, var_list=self.g_vars)
-        self.e_optim = tf.train.AdamOptimizer(self.lr, beta1=self.beta1).minimize(
-            self.recon_loss, var_list=self.e_vars) # + self.g_vars
+        self.e_optim = tf.train.AdamOptimizer(self.lr, beta1=self.beta1).minimize(self.e_loss, var_list=self.e_vars)
+#        self.e_optim = tf.train.AdamOptimizer(self.lr, beta1=self.beta1).minimize(
+#            self.recon_loss, var_list=self.e_vars) # + self.g_vars
         
 #        self.ge_optim = tf.train.AdamOptimizer(self.lr, beta1=self.beta1).minimize(self.ge_loss, var_list=(self.g_vars+self.e_vars))
         
@@ -139,6 +146,7 @@ class dcgan(object):
                 # update E network
                 feed = {self.real: images}
                 _, e_summary = self.sess.run([self.e_optim, self.e_sum], feed_dict=feed)
+                
                 # update D network
                 feed = {self.real: images, self.z: z_value}
                 _, d_summary = self.sess.run([self.d_optim, self.d_sum], feed_dict=feed)
@@ -208,7 +216,9 @@ class dcgan(object):
 #        self.g_sum = tf.summary.merge([sum_g])
     
         # session: encoder
-        self.e_sum = tf.summary.scalar('loss/recon', self.recon_loss)
+        tf.summary.scalar('loss/recon', self.recon_loss, collections = ['enc'])
+        tf.summary.scalar('loss/kl', self.kl_loss, collections = ['enc'])
+        self.e_sum = tf.summary.merge_all('enc')
         
         # session: image
         self.tf_imgs = tf.concat([self.real[:4,:,:,:], self.real_ae[:4,:,:,:], self.fake[:4,:,:,:]], axis=0)

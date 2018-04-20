@@ -76,3 +76,17 @@ def recon_loss(image1, image2, norm='l2'):
         return tf.reduce_mean(tf.pow(image1 - image2,2))
     else: # l1
         return tf.reduce_mean(tf.abs(image1 - image2))
+    
+	
+def kl_loss(z, mode='qp'):
+    mean = tf.reduce_mean(z, axis=0)
+    var = tf.reduce_mean(tf.pow(z,2), axis=0) - tf.pow(mean,2)
+    
+    ''' p ~ N(0,I), q is Encoder output distribution '''
+    if mode == 'qp':
+        kl = (tf.pow(mean,2) + var)/2 - tf.log(tf.sqrt(var)) - 0.5
+    else: # mode == 'pq'
+        kl = (1. + tf.pow(mean,2))/2 + tf.log(tf.sqrt(var)) - 0.5
+    kl = tf.reduce_mean(kl)
+    
+    return kl
