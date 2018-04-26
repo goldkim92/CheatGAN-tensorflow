@@ -50,11 +50,11 @@ class dcgan(object):
         self.real = tf.placeholder(tf.float32, [None, self.input_size, self.input_size, self.image_c], name='real')
         
         # generate image
-        self.fake = generator(self.z, self.options, False, name='gen')
+        self.fake, features = generator(self.z, self.options, False, name='gen')
         
         # discrimate image
-        self.real_d = discriminator(self.real, self.options, False, name='disc')
-        self.fake_d = discriminator(self.fake, self.options, True, name='disc')
+        self.real_d = discriminator(self.real, features, self.options, False, name='disc')
+        self.fake_d = discriminator(self.fake, features, self.options, True, name='disc')
 
             
         # loss : discriminator loss
