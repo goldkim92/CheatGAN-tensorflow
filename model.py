@@ -4,18 +4,20 @@ import random
 import scipy.misc as scm
 import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data
+from tensorflow.python.keras._impl.keras.datasets.cifar10 import load_data
 
 from collections import namedtuple
 from tqdm import tqdm
 from glob import glob
 
 from module import generator, discriminator, gan_loss, wgan_gp_loss
-from util import make3d
+from util import next_batch, make3d
 
 class dcgan(object):
     def __init__(self, sess, args):
         self.sess = sess
         self.phase = args.phase
+        self.data = args.data
         self.data_dir = args.data_dir
         self.log_dir = args.log_dir
         self.ckpt_dir = args.ckpt_dir
@@ -87,24 +89,33 @@ class dcgan(object):
     def train(self):
         
         # load train data list
-        mnist = input_data.read_data_sets(self.data_dir, one_hot=True)
-        
+        if self.data == 'mnist':
+            mnist = input_data.read_data_sets(self.data_dir, one_hot=True)
+            batch_idxs = mnist.train.num_examples // self.batch_size
+        else: #'cifar10'
+            (cifar10, y_train), (x_test, y_test) = load_data()
+            cifar10 = cifar10 / 255. # normalization
+            batch_idxs = cifar10.shape[0] // self.batch_size
+
+            
         # random seed for sampling test during training
         z_rand_sample = np.random.normal(0,1,size=(self.batch_size, self.z_dim)).astype(np.float32)
         
         # variable initialize
         self.sess.run(tf.global_variables_initializer())
         
-        batch_idxs = mnist.train.num_examples // self.batch_size
         count_idx = 0
         #train
         for epoch in range(self.epoch):
             print('Epoch[{}/{}]'.format(epoch+1, self.epoch))
             for idx in tqdm(range(batch_idxs)):
                 # get batch images and labels
-                images, labels = mnist.train.next_batch(self.batch_size)
-                images = images.reshape([self.batch_size, self.image_size, self.image_size])
-                images = self.zero_padding(images) # 28*28 --> 32*32*1
+                if self.data == 'mnist':
+                    images, labels = mnist.train.next_batch(self.batch_size)
+                    images = images.reshape([self.batch_size, self.image_size, self.image_size, self.image_c])
+                    images = self.zero_padding(images) # 28*28*1 --> 32*32*1
+                else: # 'cifar10'
+                    images = next_batch(cifar10, self.batch_size, idx) # 32*32*1
                 
                 # get z value (random noise) 
                 z_value = np.random.normal(0,1,size=(self.batch_size, self.z_dim)).astype(np.float32)
@@ -194,7 +205,7 @@ class dcgan(object):
         
     
     def zero_padding(self, images):
-        pad_imgs = np.zeros([self.batch_size, self.input_size, self.input_size]) # 32*32
-        pad_imgs[:,2:-2,2:-2] = images
-        return np.expand_dims(pad_imgs,axis=3) # 32*32*1
+        pad_imgs = np.zeros([self.batch_size, self.input_size, self.input_size, self.image_c]) # 32*32
+        pad_imgs[:,2:-2,2:-2,:] = images
+        return pad_imgs # 32*32*1
         
