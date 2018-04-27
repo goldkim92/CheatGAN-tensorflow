@@ -15,6 +15,7 @@ from model import dcgan
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('--phase',          type=str,   default='train',    help='train or test')
 parser.add_argument('--gpu_number',     type=str,   default='0')
+parser.add_argument('--data',           type=str,   default='mnist') # mnist or cifar10
 parser.add_argument('--data_dir',       type=str,   default=os.path.join('.','MNIST_data'))
 parser.add_argument('--log_dir',        type=str,   default='log') # in assets/ directory
 parser.add_argument('--ckpt_dir',       type=str,   default='checkpoint') # in assets/ directory
@@ -60,6 +61,10 @@ def main(_):
     except: pass
     try: os.makedirs(args.test_dir)
     except: pass
+
+    # if data == 'cifar10': image_c == 3
+    if args.data == 'cifar10':
+        args.image_c = 3
 
     # run session
     tfconfig = tf.ConfigProto()

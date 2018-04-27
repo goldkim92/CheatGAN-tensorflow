@@ -1,6 +1,20 @@
 import numpy as np
 import tensorflow as tf
 
+def one_hot(labels):
+    onehot = np.zeros([labels.shape[0],10])
+    for i, label in enumerate(labels):
+        onehot[i,label] = 1
+    return onehot
+
+def next_batch(data, batch_size, idx):
+    if idx == 0:
+        np.random.shuffle(data)
+        
+    batch = data[idx*batch_size:(idx+1)*batch_size,:,:,:]
+    return batch
+    
+
 def unstack(img, axis):
     d =img.shape[axis]
     arr = [np.squeeze(a,axis=axis) for a in np.split(img, d, axis=axis)]
