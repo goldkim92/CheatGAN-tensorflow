@@ -15,8 +15,8 @@ from model import dcgan
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('--phase',          type=str,   default='train',    help='train or test')
 parser.add_argument('--gpu_number',     type=str,   default='0')
-parser.add_argument('--data',           type=str,   default='mnist') # mnist or cifar10
-parser.add_argument('--data_dir',       type=str,   default=os.path.join('.','MNIST_data'))
+parser.add_argument('--data',           type=str,   default='mnist') # mnist or cifar10 or celebA
+parser.add_argument('--data_dir',       type=str,   default=os.path.join('.','MNIST_data')) # automatically change (looking --data)
 parser.add_argument('--log_dir',        type=str,   default='log') # in assets/ directory
 parser.add_argument('--ckpt_dir',       type=str,   default='checkpoint') # in assets/ directory
 parser.add_argument('--sample_dir',     type=str,   default='sample') # in assets/ directory
@@ -62,9 +62,14 @@ def main(_):
     try: os.makedirs(args.test_dir)
     except: pass
 
-    # if data == 'cifar10': image_c == 3
+    # if data == 'cifar10' or 'celebA' : image_c = 3
     if args.data == 'cifar10':
         args.image_c = 3
+    elif args.data == 'celebA':
+        args.image_c = 3
+        args.data_dir = os.path.join('.','data','celebA')
+        args.image_size = 64
+        args.input_size = 64
 
     # run session
     tfconfig = tf.ConfigProto()

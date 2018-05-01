@@ -16,6 +16,8 @@ def generator(z, options, reuse=False, name='gen'):
         x2 = relu(batch_norm(deconv2d(x, 4*options.nf, ks=4, s=4, name='gen_deconv1'), 'gen_bn1')) # 4*4*512
         x3 = relu(batch_norm(deconv2d(x2, 2*options.nf, ks=4, s=2, name='gen_deconv2'), 'gen_bn2')) # 8*8*256
         x4 = relu(batch_norm(deconv2d(x3, options.nf, ks=4, s=2, name='gen_deconv3'), 'gen_bn3')) # 16*16*128
+        if options.input_size == 64:
+            x = relu(batch_norm(deconv2d(x, options.nf, ks=4, s=2, name='gen_deconv3_1'), 'gen_bn3_1')) # 32*32*128
         x = deconv2d(x4, options.image_c, ks=4, s=2, name='gen_deconv4') # 32*32*1
         
         features = [x2,x3,x4]
@@ -30,7 +32,9 @@ def discriminator(images, features, options, reuse=False, name='disc'):
             tf.get_variable_scope().reuse_variables()
         else:
             assert tf.get_variable_scope().reuse is False
-        x = lrelu(batch_norm(conv2d(images, options.nf, ks=4, s=2, name='disc_conv1'), 'disc_bn1')) # 16*16*128
+        x = lrelu(batch_norm(conv2d(images, options.nf, ks=4, s=2, name='disc_conv1'), 'disc_bn1')) # 16*16*128 or 32*32*128
+        if options.input_size == 64:
+            x = lrelu(batch_norm(conv2d(x, options.nf, ks=4, s=2, name='disc_conv1_1'), 'disc_bn1_1')) # 16*16*128
         x = lrelu(batch_norm(conv2d(x, 2*options.nf, ks=4, s=2, name='disc_conv2'), 'disc_bn2')) # 8*8*256
         x = lrelu(batch_norm(conv2d(tf.concat([x,features[1]], axis=0), 4*options.nf, ks=4, s=2, name='disc_conv3'), 'disc_bn3')) # 4*4*512
         x = conv2d(x, 1, ks=4, s=1, name='disc_conv4') # 1*1*1
