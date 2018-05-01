@@ -37,8 +37,8 @@ def discriminator(images, features, options, reuse=False, name='disc'):
         x = lrelu(batch_norm(conv2d(images, options.nf, ks=4, s=2, name='disc_conv1'), 'disc_bn1')) # 16*16*128 or 32*32*128
         if options.input_size == 64:
             x = lrelu(batch_norm(conv2d(x, options.nf, ks=4, s=2, name='disc_conv1_1'), 'disc_bn1_1')) # 16*16*128
-        x = lrelu(batch_norm(conv2d(tf.concat([x,features[2]], 2*options.nf, ks=4, s=2, name='disc_conv2'), 'disc_bn2')) # 8*8*256
-        x = lrelu(batch_norm(conv2d(x, axis=0), 4*options.nf, ks=4, s=2, name='disc_conv3'), 'disc_bn3')) # 4*4*512
+        x = lrelu(batch_norm(conv2d(tf.concat([x,features[2]], axis=0), 2*options.nf, ks=4, s=2, name='disc_conv2'), 'disc_bn2')) # 8*8*256
+        x = lrelu(batch_norm(conv2d(x, 4*options.nf, ks=4, s=2, name='disc_conv3'), 'disc_bn3')) # 4*4*512
         x = conv2d(x, 1, ks=4, s=1, name='disc_conv4') # 1*1*1
         x = tf.reshape(x, [-1, 1])
 #        x = linear(tf.reshape(x, [options.batch_size,2*2*(8*options.nf)]), 1, name='disc_linear') # 100
