@@ -68,27 +68,6 @@ def load_data_list(data_dir):
     file_list = glob(path)
     return file_list
 
-def make_big_batch(file_list, big_idx, big_batch_size, input_size):
-    if big_idx == len(file_list) // big_batch_size:
-        big_batch_list = file_list[big_idx * big_batch_size :]
-    else:
-        big_batch_list = file_list[big_idx * big_batch_size : (big_idx+1) * big_batch_size]
-    
-    return preprocess_image(big_batch_list, input_size, 'train')
-
-def check_big_batch(file_list, batch_size, input_size, idx):
-    if idx == 0:
-        np.random.shuffle(file_list)
-    
-    big_batch_size = 12000
-    n = int(np.ceil(big_batch_size / batch_size))
-    if idx % n == 0:
-        new_bb_file_list = file_list[idx*batch_size: (idx+n)*batch_size]
-        big_batch = preprocess_image(new_bb_file_list,input_size, 'train')
-        return True, big_batch, idx%n
-    else:
-        return False, None, idx%n
-
 def preprocess_image(file_list, input_size, phase='train'):
     imgA = [get_image(img_path, input_size, phase=phase) for img_path in file_list]
     return np.array(imgA)
