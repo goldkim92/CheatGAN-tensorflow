@@ -11,7 +11,7 @@ from tqdm import tqdm
 from glob import glob
 
 from module import generator, discriminator, gan_loss, wgan_gp_loss
-from util import next_batch, make3d
+from util import next_batch, make3d, load_data_list, check_big_batch
 
 class dcgan(object):
     def __init__(self, sess, args):
@@ -39,8 +39,8 @@ class dcgan(object):
         self.ckpt_step = args.ckpt_step
 
         # hyper parameter for building the module
-        OPTIONS = namedtuple('options', ['batch_size', 'image_c', 'nf', 'z_dim'])
-        self.options = OPTIONS(self.batch_size, self.image_c, self.nf, self.z_dim)
+        OPTIONS = namedtuple('options', ['batch_size', 'input_size', 'image_c', 'nf', 'z_dim'])
+        self.options = OPTIONS(self.batch_size, self.input_size, self.image_c, self.nf, self.z_dim)
         
         # build model & make checkpoint saver
         self.build_model()
@@ -92,10 +92,13 @@ class dcgan(object):
         if self.data == 'mnist':
             mnist = input_data.read_data_sets(self.data_dir, one_hot=True)
             batch_idxs = mnist.train.num_examples // self.batch_size
-        else: #'cifar10'
+        elif self.data == 'cifar10': 
             (cifar10, y_train), (x_test, y_test) = load_data()
             cifar10 = cifar10 / 255. # normalization
             batch_idxs = cifar10.shape[0] // self.batch_size
+        else: # 'celebA'
+            file_list = load_data_list(self.data_dir)
+            batch_idxs = len(file_list) // self.batch_size
 
             
         # random seed for sampling test during training
@@ -108,14 +111,21 @@ class dcgan(object):
         #train
         for epoch in range(self.epoch):
             print('Epoch[{}/{}]'.format(epoch+1, self.epoch))
+            
             for idx in tqdm(range(batch_idxs)):
                 # get batch images and labels
                 if self.data == 'mnist':
                     images, labels = mnist.train.next_batch(self.batch_size)
                     images = images.reshape([self.batch_size, self.image_size, self.image_size, self.image_c])
                     images = self.zero_padding(images) # 28*28*1 --> 32*32*1
-                else: # 'cifar10'
+                elif self.data == 'cifar10': 
                     images = next_batch(cifar10, self.batch_size, idx) # 32*32*1
+                else: # 'celebA'
+                    check, tmp_big_batch, idx_n = check_big_batch(file_list, self.batch_size, self.input_size, idx)
+                    if type(tmp_big_batch) is np.ndarray:
+                        big_batch = tmp_big_batch 
+                    images = next_batch(big_batch, self.batch_size, idx_n)
+                    
                 
                 # get z value (random noise) 
                 z_value = np.random.normal(0,1,size=(self.batch_size, self.z_dim)).astype(np.float32)
