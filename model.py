@@ -11,7 +11,7 @@ from tqdm import tqdm
 from glob import glob
 
 from module import generator, discriminator, gan_loss, wgan_gp_loss
-from util import next_batch, make3d, load_data_list, check_big_batch
+from util import next_batch, make3d, load_data_list, make_big_batch
 
 class dcgan(object):
     def __init__(self, sess, args):
@@ -99,7 +99,8 @@ class dcgan(object):
         else: # 'celebA'
             file_list = load_data_list(self.data_dir)
             batch_idxs = len(file_list) // self.batch_size
-
+#            big_batch_size = 16384 # = 2**14, this variable exist because celebA dataset is to big to call in onece
+            big_batch_size = 65536
             
         # random seed for sampling test during training
         z_rand_sample = np.random.normal(0,1,size=(self.batch_size, self.z_dim)).astype(np.float32)
@@ -121,10 +122,10 @@ class dcgan(object):
                 elif self.data == 'cifar10': 
                     images = next_batch(cifar10, self.batch_size, idx) # 32*32*1
                 else: # 'celebA'
-                    check, tmp_big_batch, idx_n = check_big_batch(file_list, self.batch_size, self.input_size, idx)
-                    if type(tmp_big_batch) is np.ndarray:
-                        big_batch = tmp_big_batch 
-                    images = next_batch(big_batch, self.batch_size, idx_n)
+                    big_idx, residual = (idx*self.batch_size) // big_batch_size, (idx*self.batch_size) % big_batch_size
+                    if residual == 0:
+                        big_batch = make_big_batch(file_list, big_idx, big_batch_size, self.input_size)
+                    images = big_batch[residual:residual+self.batch_size,:,:,:]
                     
                 
                 # get z value (random noise) 
