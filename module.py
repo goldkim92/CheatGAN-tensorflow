@@ -17,7 +17,7 @@ def generator(z, options, reuse=False, name='gen'):
         x3 = relu(batch_norm(deconv2d(x2, 2*options.nf, ks=4, s=2, name='gen_deconv2'), 'gen_bn2')) # 8*8*256
         x4 = relu(batch_norm(deconv2d(x3, options.nf, ks=4, s=2, name='gen_deconv3'), 'gen_bn3')) # 16*16*128
         if options.input_size == 64:
-            x = relu(batch_norm(deconv2d(x, options.nf, ks=4, s=2, name='gen_deconv3_1'), 'gen_bn3_1')) # 32*32*128
+            x4 = relu(batch_norm(deconv2d(x4, options.nf, ks=4, s=2, name='gen_deconv3_1'), 'gen_bn3_1')) # 32*32*128
         x = deconv2d(x4, options.image_c, ks=4, s=2, name='gen_deconv4') # 32*32*1
         
         features = [x2,x3,x4]
