@@ -150,7 +150,8 @@ class dcgan(object):
                 if count_idx % self.sample_step == 0:
                     feed = {self.z: z_rand_sample}
                     fake_sample, img_summary = self.sess.run([self.fake, self.img_sum], feed_dict=feed)
-                    fake_sample = make3d(fake_sample, int(np.sqrt(self.batch_size)), int(np.sqrt(self.batch_size)) )
+                    fake_sample = make3d(fake_sample, 
+                                         int(np.ceil(np.sqrt(self.batch_size))), int(np.ceil(np.sqrt(self.batch_size))) )
                     
                     scm.imsave(os.path.join(self.sample_dir, str(count_idx)+'.png'), np.squeeze(fake_sample))
                     self.writer.add_summary(img_summary, count_idx)
@@ -168,7 +169,8 @@ class dcgan(object):
             
         feed = {self.z: z_value}
         fake_sample, img_test_summary = self.sess.run([self.fake, self.img_test_sum], feed_dict=feed)
-        fake_sample = make3d(fake_sample, int(np.sqrt(self.batch_size)), int(np.sqrt(self.batch_size)) )
+        fake_sample = make3d(fake_sample, 
+                             int(np.ceil(np.sqrt(self.batch_size))), int(np.ceil(np.sqrt(self.batch_size))) )
         
         scm.imsave(os.path.join(self.test_dir, 'fake_image.png'), np.squeeze(fake_sample))
         self.writer.add_summary(img_test_summary)
@@ -191,7 +193,9 @@ class dcgan(object):
         # session: image (train)
         self.img_sum = tf.summary.image('sample image', make3d(self.fake[:12,:,:,:],4,3))
         
-        self.img_test_sum = tf.summary.image('test(fake) image', make3d(self.fake,int(np.sqrt(self.batch_size)),int(np.sqrt(self.batch_size))))
+        self.img_test_sum = tf.summary.image(
+                'test(fake) image', 
+                make3d(self.fake,int(np.ceil(np.sqrt(self.batch_size))),int(np.ceil(np.sqrt(self.batch_size))) ) )
     
     def checkpoint_load(self):
         print(" [*] Reading checkpoint...")
