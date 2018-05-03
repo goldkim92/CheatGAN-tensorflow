@@ -15,8 +15,10 @@ def generator(z, options, reuse=False, name='gen'):
 #        x = tf.reshape(x, [options.batch_size,2,2,8*options.nf]) # 2*2*1024
         
         if options.input_size == 64:
-            x = relu(batch_norm(deconv2d(x, 8*options.nf, ks=4, s=2, name='gen_deconv0'), 'gen_bn0')) # 4*4*1024
-        x2 = relu(batch_norm(deconv2d(x, 4*options.nf, ks=5, s=4, name='gen_deconv1'), 'gen_bn1')) # 4*4*512 or 8*8*512
+            x = relu(batch_norm(deconv2d(x, options.nf, ks=4, s=4, name='gen_deconv0'), 'gen_bn0')) # 4*4*1024
+            x2 = relu(batch_norm(deconv2d(x, 4*options.nf, ks=5, s=2, name='gen_deconv1'), 'gen_bn1')) # 8*8*512
+        else:
+            x2 = relu(batch_norm(deconv2d(x, 4*options.nf, ks=4, s=4, name='gen_deconv1'), 'gen_bn1')) # 4*4*512
         x3 = relu(batch_norm(deconv2d(x2, 2*options.nf, ks=5, s=2, name='gen_deconv2'), 'gen_bn2')) # 8*8*256 or 16*16*256
         x4 = relu(batch_norm(deconv2d(x3, options.nf, ks=5, s=2, name='gen_deconv3'), 'gen_bn3')) # 16*16*128 or 32*32*128
         x = deconv2d(x4, options.image_c, ks=5, s=2, name='gen_deconv4') # 32*32*1 or 64*64*1
@@ -36,9 +38,9 @@ def discriminator(images, features, options, reuse=False, name='disc'):
             
         x = lrelu(batch_norm(conv2d(images, options.nf, ks=5, s=2, name='disc_conv1'), 'disc_bn1')) # 16*16*128 or 32*32*128
         x = lrelu(batch_norm(conv2d(x, 2*options.nf, ks=5, s=2, name='disc_conv2'), 'disc_bn2')) # 8*8*256 or 16*16*256
-        x = lrelu(batch_norm(conv2d(tf.concat([x,features[1]],axis=0), 4*options.nf, ks=5, s=2, name='disc_conv3'), 'disc_bn3')) # 4*4*512 or 8*8*512
+        x = lrelu(batch_norm(conv2d(x, 4*options.nf, ks=5, s=2, name='disc_conv3'), 'disc_bn3')) # 4*4*512 or 8*8*512
         if options.input_size == 64:
-            x = lrelu(batch_norm(conv2d(x, 8*options.nf, ks=5, s=2, name='disc_conv0'), 'disc_bn0')) # 4*4*1024
+            x = lrelu(batch_norm(conv2d(tf.concat([x,features[0]],axis=0), options.nf, ks=5, s=2, name='disc_conv0'), 'disc_bn0')) # 4*4*1024
         x = conv2d(x, 1, ks=4, s=1, name='disc_conv4') # 1*1*1
         x = tf.reshape(x, [-1, 1])
 #        x = linear(tf.reshape(x, [options.batch_size,2*2*(8*options.nf)]), 1, name='disc_linear') # 100
